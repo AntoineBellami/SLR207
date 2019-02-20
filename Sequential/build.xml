@@ -1,0 +1,18 @@
+<project name="SLR207" basedir="." default="main">
+
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+
+    <target name="compile">
+       <mkdir dir="build/classes"/>
+       <javac srcdir="src/Main/java" includeantruntime="true" includes="WordsCounter.java" destdir="build/classes"></javac>
+    </target>
+
+    <target name="run" depends="compile">
+       <java dir="build/classes" classname="WordsCounter" fork="true"></java>
+    </target>
+
+    <target name="main" depends="clean,run"/>
+
+</project>
