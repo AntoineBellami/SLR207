@@ -10,12 +10,19 @@ public class Main {
 		
 		final int timeout = 15; // Timeout in seconds
 	
+		/*
+		 * Execute slave.jar thanks to a process builder, with a timeout (defined above)
+		 * enabled by the use of a LinkedBlockedQueue
+		 */
 		try {
 			Process p = new ProcessBuilder("java", "-jar", "/tmp/abellami/slave.jar").start();
-			// Process p = new ProcessBuilder("ls", "-al", "/tmp").start();
-
+			
 			LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 		    
+			/*
+			 * This thread intercepts the standard input of the process builder
+			 * and stores it the LinkedBlockedQueue queue 
+			 */
 		    Thread inputThread = new Thread() {
 		    	public void run() {
 		    		BufferedReader inputBr = new BufferedReader(
@@ -35,7 +42,10 @@ public class Main {
 		    	}
 		    };
 		    
-		    
+		    /*
+			 * This thread intercepts the error input of the process builder
+			 * and stores it the LinkedBlockedQueue queue 
+			 */
 			Thread errorThread = new Thread() {
 		    	public void run() {
 		    		BufferedReader errorBr= new BufferedReader(
@@ -58,8 +68,11 @@ public class Main {
 		    inputThread.start();
 			errorThread.start();
 			
+			/*
+			 * Print any output of the execution of slave.jar until the timeout
+			 * is reached (timeout gets reinitialized after every new output)
+			 */
 			String nextLine = (String) queue.poll(timeout, TimeUnit.SECONDS);
-
 			while(nextLine != null) {
 				System.out.println(nextLine);
 				nextLine = (String) queue.poll(timeout, TimeUnit.SECONDS);
