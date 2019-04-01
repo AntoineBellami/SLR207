@@ -29,7 +29,7 @@ public class MachinesTester {
 		FileReader fr = null;
 		
 		try {
-			fr = new FileReader("../machines.txt");
+			fr = new FileReader("machines.txt");
 			BufferedReader br = new BufferedReader(fr) ;
 			Scanner        sc = new Scanner(br) ;
 
@@ -51,7 +51,7 @@ public class MachinesTester {
 		 * via SSH of the machine by executing the command 'hostname', with a timeout
 		 * delay defined below
 		 */
-		final int timeout = 10;
+		final int timeout = 5;
 		
 		machines.parallelStream().forEach(machine -> {
 			
@@ -109,10 +109,12 @@ public class MachinesTester {
 				this.machinesDeployed.add(machine);
 				
 				try {
-					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p", "/tmp/abellami/").start();
+					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
+							"/cal/homes/abellami/tmp/abellami/").start();
 					p.waitFor();
-					p = new ProcessBuilder("scp", "/tmp/abellami/slave.jar",
-							"abellami@" + machine + ":/tmp/abellami/").start();
+					p = new ProcessBuilder("scp", "/cal/homes/abellami/tmp/abellami/slave.jar",
+							"abellami@" + machine + ":/cal/homes/abellami/tmp/abellami").start();
+					p.waitFor();
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				} catch (InterruptedException e) {

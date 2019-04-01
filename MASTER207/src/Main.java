@@ -8,10 +8,16 @@ public class Main {
 	public static void main(String[] args) {
 		
 		/*
-		 * This boolean determines whether the slave.jar file is deployed after
+		 * This boolean determines whether the slave.jar file is launched after
 		 * the search for reachable machines 
 		 */
-		final boolean deploySlave = true;
+		final boolean launchSlave = true;
+		
+		/*
+		 * This boolean determines whether the split files are deployed after
+		 * the search for reachable machines 
+		 */
+		final boolean deploySplits = true;
 		
 		/*
 		 * Read deployed machines names by calling deploy.jar and store them
@@ -22,7 +28,7 @@ public class Main {
 		System.out.println("Seek for deployed machines:" + "\n");
 		
 		try {
-			Process p = new ProcessBuilder("java", "-jar", "../deploy.jar").start();
+			Process p = new ProcessBuilder("java", "-jar", "deploy.jar").start();
 			
 			/*
 			 * This thread intercepts the standard input of the process builder
@@ -51,12 +57,12 @@ public class Main {
 			e.printStackTrace();
 		}
 		
-		if (deploySlave) {
+		if (launchSlave) {
 			
 			/*
 			 * Simultaneously launch for every machine the code previously deployed
 			 */
-			final int timeout = 20;
+			final int timeout = 5;
 			
 			machinesDeployed.parallelStream().forEach(machine -> {
 		
@@ -66,7 +72,7 @@ public class Main {
 					 * with a timeout (defined above) enabled by the use of a LinkedBlockedQueue
 					 */
 					Process p2 = new ProcessBuilder("ssh", "abellami@" + machine, "java", "-jar",
-							"/tmp/abellami/slave.jar").start();
+							"/cal/homes/abellami/tmp/abellami/slave.jar").start();
 					
 					LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 				    
@@ -109,6 +115,11 @@ public class Main {
 			
 			});
 			
+		}
+		
+		if (deploySplits) {
+			SplitsDeployer splitsDeployer = new SplitsDeployer(machinesDeployed, "splits/");
+			splitsDeployer.deploy();
 		}
 	}
 }
