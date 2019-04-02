@@ -1,17 +1,15 @@
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public class Main {
 
 	public static void main(String[] args) {
 		
 		/*
-		 * This boolean determines whether the slave.jar file is launched after
-		 * the search for reachable machines 
+		 * This boolean determines whether the slave.jar file is deployed after
+		 * the search for reachable machines
 		 */
-		final boolean launchSlave = true;
+		final boolean deploySlave = true;
 		
 		/*
 		 * This boolean determines whether the split files are deployed after
@@ -57,55 +55,25 @@ public class Main {
 			e.printStackTrace();
 		}
 		
-		if (launchSlave) {
+		if (deploySlave) {
 			
 			/*
-			 * Simultaneously launch for every machine the code previously deployed
-			 */
-			final int timeout = 5;
-			
+			 * Simultaneously deploy for every machine the SLAVE
+			 */			
 			machinesDeployed.parallelStream().forEach(machine -> {
 		
+				Process p = null;
 				try {
 					/*
-					 * Execute slave.jar on the reachable machines thanks to a process builder,
-					 * with a timeout (defined above) enabled by the use of a LinkedBlockedQueue
+					 * Create /tmp/abellami/
+					 * directory and deploy slave in it
 					 */
-					Process p2 = new ProcessBuilder("ssh", "abellami@" + machine, "java", "-jar",
-							"/cal/homes/abellami/tmp/abellami/slave.jar").start();
+					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
+							"/tmp/abellami/splits/").start();
+					p.waitFor();
 					
-					LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<String>();
-				    
-					/*
-					 * This thread intercepts the standard input of the process builder
-					 * and stores it the LinkedBlockedQueue queue 
-					 */
-					StandardStreamThread it = new StandardStreamThread(true, p2, queue);
-				    
-				    /*
-					 * This thread intercepts the error input of the process builder
-					 * and stores it the LinkedBlockedQueue queue 
-					 */
-					ErrorStreamThread et = new ErrorStreamThread(true, p2, queue);
-				    
-				    it.start();
-					et.start();
-					
-					/*
-					 * Print any output of the execution of slave.jar until the timeout
-					 * is reached (timeout gets reinitialized after every new output)
-					 */
-					String nextLine = (String) queue.poll(timeout, TimeUnit.SECONDS);
-					while(nextLine != null) {
-						System.out.println(nextLine);
-						nextLine = (String) queue.poll(timeout, TimeUnit.SECONDS);
-					}
-
-					it.interrupt();
-					et.interrupt();
-					p2.destroy();
-					
-					System.out.println("TIMEOUT");
+					p = new ProcessBuilder("scp", "slave.jar", "abellami@" + machine
+							+ ":/tmp/abellami").start();
 					
 				} catch (IOException e) {
 					e.printStackTrace();

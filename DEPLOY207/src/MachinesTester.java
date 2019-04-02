@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit;
 
 public class MachinesTester {
 	
+	final int timeout = 5; // timeout in seconds
+	
 	private ArrayList<String> machines = new ArrayList<String>();
 	private ArrayList<String> machinesDeployed = new ArrayList<String>();
 
@@ -49,10 +51,8 @@ public class MachinesTester {
 		/*
 		 * Simultaneously launch for every machine a thread which checks the accessibility
 		 * via SSH of the machine by executing the command 'hostname', with a timeout
-		 * delay defined below
-		 */
-		final int timeout = 5;
-		
+		 * delay defined at the beginning of this file
+		 */		
 		machines.parallelStream().forEach(machine -> {
 			
 			/*
@@ -93,7 +93,7 @@ public class MachinesTester {
     		t.start();
 		    
 		    /*
-		     * Wait for at most 10 seconds the output of the command ;
+		     * Wait for at most 'timeout' seconds the output of the command ;
 		     * if the machine is not reachable during those 10 seconds,
 		     * the connection is considered to have failed
 		     */
@@ -110,10 +110,7 @@ public class MachinesTester {
 				
 				try {
 					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
-							"/cal/homes/abellami/tmp/abellami/").start();
-					p.waitFor();
-					p = new ProcessBuilder("scp", "/cal/homes/abellami/tmp/abellami/slave.jar",
-							"abellami@" + machine + ":/cal/homes/abellami/tmp/abellami").start();
+							"/tmp/abellami/").start();
 					p.waitFor();
 				} catch (IOException e1) {
 					e1.printStackTrace();
