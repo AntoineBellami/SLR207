@@ -1,5 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class Main {
 
@@ -22,6 +24,13 @@ public class Main {
 		 * in an ArrayList
 		 */
 		ArrayList<String> machinesDeployed = new ArrayList<String>();
+		
+		/*
+		 * Dictionary mapping the names of the UMx files with the names of
+		 * the machines containing them
+		 */
+		HashMap<String, String> UMx_machines_dict = new HashMap<String, String>();
+		HashMap<String, List<String>> keys_machines_dict = new HashMap<String, List<String>>();
 		
 		System.out.println("Seek for deployed machines:" + "\n");
 		
@@ -65,8 +74,7 @@ public class Main {
 				Process p = null;
 				try {
 					/*
-					 * Create /tmp/abellami/
-					 * directory and deploy slave in it
+					 * Create /tmp/abellami/ directory and deploy slave in it
 					 */
 					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
 							"/tmp/abellami/splits/").start();
@@ -88,6 +96,13 @@ public class Main {
 		if (deploySplits) {
 			SplitsDeployer splitsDeployer = new SplitsDeployer(machinesDeployed, "splits/");
 			splitsDeployer.deploy();
+			
+			UMx_machines_dict = new HashMap<String, String>(splitsDeployer.getUMx_machines_dict());
+			System.out.println(UMx_machines_dict);
+			keys_machines_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_machines_dict());
+			System.out.println(keys_machines_dict);
+			
+			System.out.println("End of the map phase");
 		}
 	}
 }
