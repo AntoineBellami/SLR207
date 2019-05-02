@@ -99,16 +99,11 @@ public class Main {
 			int inputUMNb = args.length - 3;
 
 			FileReader fr = null;
-			// Create maps directory
-			Process p = null;
-			try {
-				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/maps/").start();
-				p.waitFor();
+			
+			FileWriter fstream = null;
+			BufferedWriter out = null;
 				
-				// Create SM file
-				FileWriter fstream;
-				BufferedWriter out;
-
+			try {
 				// Create filewriter and bufferedreader
 				fstream = new FileWriter(SM);
 				out = new BufferedWriter(fstream);
@@ -130,14 +125,13 @@ public class Main {
 						}
 					}
 				}
+
 				// lastly, close the file and end
 				out.close();
 				fstream.close();
-				
-			} catch (Exception e) {
+			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		
 		}
 
 		if (mode == 2) {
@@ -170,7 +164,6 @@ public class Main {
 				lnr.close();
 
 				out.write(key + " " + Integer.toString(linesCount));
-				// lastly, close the file and end
 				out.close();
 				fstream.close();
 				

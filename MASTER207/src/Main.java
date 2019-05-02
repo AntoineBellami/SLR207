@@ -29,7 +29,7 @@ public class Main {
 		 * the machines containing them
 		 */
 		HashMap<String, String> UMx_machines_dict = new HashMap<String, String>();
-		HashMap<String, List<String>> keys_machines_dict = new HashMap<String, List<String>>();
+		HashMap<String, List<String>> keys_UMx_dict = new HashMap<String, List<String>>();
 		
 		System.out.println("Seek for deployed machines:" + "\n");
 		
@@ -97,14 +97,14 @@ public class Main {
 			splitsDeployer.deploy();
 			
 			UMx_machines_dict = new HashMap<String, String>(splitsDeployer.getUMx_machines_dict());
-			System.out.println(UMx_machines_dict);
-			keys_machines_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_machines_dict());
-			System.out.println(keys_machines_dict);
+			System.out.println("UMx-machines: " + UMx_machines_dict);
+			keys_UMx_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_UMx_dict());
+			System.out.println("Keys-UMx: " + keys_UMx_dict);
 			
 			System.out.println("End of the map phase");
 
-			// Reducer reducer = new Reducer(machinesDeployed, UMx_machines_dict, keys_machines_dict);
-			// reducer.prepare();
+			Reducer reducer = new Reducer(machinesDeployed, UMx_machines_dict, keys_UMx_dict);
+			reducer.prepare();
 		}
 	}
 }

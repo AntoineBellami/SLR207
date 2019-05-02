@@ -18,14 +18,14 @@ public class SplitsDeployer {
 	private ArrayList<String> machinesDeployed = new ArrayList<String>();
 	private String splitsPath = null;
 	private ConcurrentHashMap<String, String> UMx_machines_dict = new ConcurrentHashMap<String, String>();
-	private ConcurrentHashMap<String, List<String>> keys_machines_dict = new ConcurrentHashMap<String, List<String>>();
+	private ConcurrentHashMap<String, List<String>> keys_UMx_dict = new ConcurrentHashMap<String, List<String>>();
 	
 	public ConcurrentHashMap<String, String> getUMx_machines_dict() {
 		return UMx_machines_dict;
 	}
 
-	public ConcurrentHashMap<String, List<String>> getKeys_machines_dict() {
-		return keys_machines_dict;
+	public ConcurrentHashMap<String, List<String>> getKeys_UMx_dict() {
+		return keys_UMx_dict;
 	}
 
 	public SplitsDeployer(ArrayList<String> machinesDeployed, String splitsPath) {
@@ -33,23 +33,32 @@ public class SplitsDeployer {
 		this.splitsPath = splitsPath;
 	}
 	
-	/*
-	 * Be careful success or failure
-	 */
 	public void deploy() {
-		// Dictionary storing for each machines a set of hosted splits
+		/*
+		* Dictionary storing for each machines a set of hosted splits
+		*/
 		HashMap<String, Set<String>> machines_splits_dict = new HashMap<String, Set<String>>();
 		for (String machine: machinesDeployed) {
             machines_splits_dict.put(machine, new TreeSet<String>());
         }
 
-		// Iterator on machines
+		/*
+		* Iterator on machines
+		*/
 		Iterator machinesIterator = machinesDeployed.iterator();
 		String[] splits = new File(splitsPath).list();
         
-        // Assign each key to a machine
+		/*
+		* Assign each split to a machine
+		*/
         for (String split: splits) {
-			machines_splits_dict.get(machinesIterator.next()).add(split);
+			if (machinesIterator.hasNext()) {
+				machines_splits_dict.get(machinesIterator.next()).add(split);
+			}
+			else {
+				machinesIterator = machinesDeployed.iterator();
+				machines_splits_dict.get(machinesIterator.next()).add(split);
+			}			
 		}
 		
 		machinesDeployed.parallelStream().forEach(machine -> {
@@ -82,7 +91,8 @@ public class SplitsDeployer {
 										   "abellami@" + machine + ":/tmp/abellami/splits").start();
 					p.waitFor();
 					
-					int splitIndex = Integer.parseInt(split.substring(1, 2));
+					String stringIndex = split.substring(1, 2);
+					int splitIndex = Integer.parseInt(stringIndex);
 					System.out.println("Machine " + machine + " Received split " + splitIndex);
 					
 					/*
@@ -120,17 +130,17 @@ public class SplitsDeployer {
 						/*
 						* Add the new word to the keys-Umx lists dictionary
 						*/
-						if (keys_machines_dict.containsKey(nextLine)) {
+						if (keys_UMx_dict.containsKey(nextLine)) {
 							/*
 							* Copy the previous machines list and update it with the new machine which
 							* contains the key
 							*/
-							List<String> new_machines_list = new ArrayList<>(keys_machines_dict.get(nextLine));
-							new_machines_list.add(machine);
-							keys_machines_dict.replace(nextLine, new_machines_list);
+							List<String> new_UMx_list = new ArrayList<>(keys_UMx_dict.get(nextLine));
+							new_UMx_list.add("UM" + stringIndex);
+							keys_UMx_dict.replace(nextLine, new_UMx_list);
 						}
 						else {
-							keys_machines_dict.put(nextLine, Arrays.asList(machine));
+							keys_UMx_dict.put(nextLine, Arrays.asList("UM" + stringIndex));
 						}
 						
 						nextLine = (String) queue.poll(timeout, TimeUnit.SECONDS);
@@ -140,7 +150,7 @@ public class SplitsDeployer {
 					et.interrupt();
 					p.destroy();
 					
-					UMx_machines_dict.put("UM"+ Integer.toString(splitIndex), machine);
+					UMx_machines_dict.put("UM"+ stringIndex, machine);
 					System.out.println("Slave execution TIMEOUT");
 					
 				} catch (IOException e) {

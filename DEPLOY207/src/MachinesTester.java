@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MachinesTester {
 	
-	final int timeout = 5; // timeout in seconds
+	final int timeout = 2; // timeout in seconds
 	
 	private ArrayList<String> machines = new ArrayList<String>();
 	private ArrayList<String> machinesDeployed = new ArrayList<String>();
