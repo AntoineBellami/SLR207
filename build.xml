@@ -5,6 +5,9 @@
     <!--define folder properties-->
     <property name="dir.buildfile" value="."/>
     <property name="dir.jarfile" value="${dir.buildfile}"/>
+    <property name="projet.sources.dir" value="src"/>
+    <property name="projet.bin.dir" value="bin"/>
+    
     <target name="create_run_jar">
         <jar destfile="${dir.jarfile}/master.jar" filesetmanifest="mergewithoutmain">
             <manifest>
@@ -27,5 +30,20 @@
             </manifest>
             <fileset dir="${dir.jarfile}/SLAVE207/bin"/>
         </jar>
+    </target>
+
+    <target name="compile">
+        <javac srcdir="${dir.buildfile}/MASTER207/${projet.sources.dir}"
+               destdir="${dir.buildfile}/MASTER207/${projet.bin.dir}"
+               includeantruntime="false">
+        </javac>
+        <javac srcdir="${dir.buildfile}/DEPLOY207/${projet.sources.dir}"
+               destdir="${dir.buildfile}/DEPLOY207/${projet.bin.dir}"
+               includeantruntime="false">
+        </javac>
+        <javac srcdir="${dir.buildfile}/SLAVE207/${projet.sources.dir}"
+               destdir="${dir.buildfile}/SLAVE207/${projet.bin.dir}"
+               includeantruntime="false">
+        </javac>
     </target>
 </project>

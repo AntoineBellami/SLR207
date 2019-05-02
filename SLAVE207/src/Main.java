@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -91,6 +92,52 @@ public class Main {
 			
 		}
 
+		if (mode==1) {
+			String key = args[1];
+			String SM = args[2];
+			int inputUMNb = args.length - 3;
+
+			FileReader fr = null;
+			// Create maps directory
+			Process p = null;
+			try {
+				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/maps/").start();
+				p.waitFor();
+				
+				// Create SM file
+				FileWriter fstream;
+				BufferedWriter out;
+
+				// Create filewriter and bufferedreader
+				fstream = new FileWriter(SM);
+				out = new BufferedWriter(fstream);
+
+				for (int k=0; k<inputUMNb; k++) {
+
+					fr = new FileReader(args[k+3]);
+					BufferedReader br = new BufferedReader(fr) ;
+					@SuppressWarnings("resource")
+					Scanner        sc = new Scanner(br) ;
+					
+					String word = null;
+					int count = 0;
+					while(sc.hasNext()) {
+						word = sc.next();
+						count = Integer.parseInt(sc.next());
+						if (key.equals(word)) {
+							out.write(key + " " + count + "\n");
+						}
+					}
+				}
+				// lastly, close the file and end
+				out.close();
+				fstream.close();
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		
+		}
 	}
 
 }
