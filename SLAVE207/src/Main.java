@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.LineNumberReader;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -115,15 +116,15 @@ public class Main {
 				for (int k=0; k<inputUMNb; k++) {
 
 					fr = new FileReader(args[k+3]);
-					BufferedReader br = new BufferedReader(fr) ;
+					BufferedReader br = new BufferedReader(fr);
 					@SuppressWarnings("resource")
-					Scanner        sc = new Scanner(br) ;
+					Scanner sc = new Scanner(br);
 					
 					String word = null;
 					int count = 0;
 					while(sc.hasNext()) {
 						word = sc.next();
-						count = Integer.parseInt(sc.next());
+						count = sc.nextInt();
 						if (key.equals(word)) {
 							out.write(key + " " + count + "\n");
 						}
@@ -137,6 +138,44 @@ public class Main {
 				e.printStackTrace();
 			}
 		
+		}
+
+		if (mode == 2) {
+			String key = args[1];
+			String SM = args[2];
+			String RM = args[3];
+
+			FileReader fr = null;
+			// Create reduces directory
+			Process p = null;
+			try {
+				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/reduces/").start();
+				p.waitFor();
+
+				// Create RM file
+				FileWriter fstream;
+				BufferedWriter out;
+
+				// Create filewriter and bufferedreader
+				fstream = new FileWriter(RM);
+				out = new BufferedWriter(fstream);
+
+				fr = new FileReader(SM);
+				LineNumberReader lnr = new LineNumberReader(fr);
+				int linesCount = 0;
+				while (lnr.readLine() != null) {
+				  linesCount++;
+				}
+				lnr.close();
+
+				out.write(key + " " + Integer.toString(linesCount));
+				// lastly, close the file and end
+				out.close();
+				fstream.close();
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
