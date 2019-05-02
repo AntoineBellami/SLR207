@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Main {
-
 	public static void main(String[] args) {
 		
 		/*
@@ -103,6 +102,9 @@ public class Main {
 			System.out.println(keys_machines_dict);
 			
 			System.out.println("End of the map phase");
+
+			// Reducer reducer = new Reducer(machinesDeployed, UMx_machines_dict, keys_machines_dict);
+			// reducer.prepare();
 		}
 	}
 }

@@ -141,6 +141,7 @@ public class Main {
 		}
 
 		if (mode == 2) {
+
 			String key = args[1];
 			String SM = args[2];
 			String RM = args[3];
