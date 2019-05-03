@@ -101,10 +101,11 @@ public class Main {
 			keys_UMx_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_UMx_dict());
 			System.out.println("Keys-UMx: " + keys_UMx_dict);
 			
-			System.out.println("End of the map phase");
+			System.out.println("End of the map phase\n");
 
 			Reducer reducer = new Reducer(machinesDeployed, UMx_machines_dict, keys_UMx_dict);
-			reducer.prepare();
+			reducer.reduce();
+			reducer.displayResult();
 		}
 	}
 }

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,73 +25,49 @@ public class Main {
 		if (mode == 0) {
 			String splitNumber = args[1];
 			String pathToSplit = "/tmp/abellami/splits/S" + splitNumber + ".txt";
-			
-			HashMap<String, Integer> map = new HashMap<>();
 
+			HashSet<String> set = new HashSet<String>();
+			
+			Process p = null;
 			FileReader fr = null;
+			FileWriter fstream = null;
+			BufferedWriter out = null;
 			try {
+				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/maps/").start();
+				p.waitFor();
+
 				fr = new FileReader(pathToSplit);
 				BufferedReader br = new BufferedReader(fr) ;
-				@SuppressWarnings("resource")
 				Scanner        sc = new Scanner(br) ;
 				
 				String word = null;
-				while(sc.hasNext()) {
-					word = sc.next();
+				// Create filewriter and bufferedreader
+				fstream = new FileWriter("/tmp/abellami/maps/UM" + splitNumber + ".txt");
+				out = new BufferedWriter(fstream);
 
-					if (map.containsKey(word))  
-					{
-						int value = map.get(word);
-						map.put(word, value + 1);
+				while (sc.hasNext()) {
+					word = sc.next();
+					if (!set.contains(word)) {
+						// Write the key in the standard output stream
+						System.out.println(word);
+						set.add(word);
 					}
-					else {
-						map.put(word, 1);
-					}
+
+					// Write the key and the value in a new line of the buffered writer,
+					// separated by a space
+					out.write(word + " 1\n");
 				}
+				// lastly, close the file and end
+				out.close();
+				fstream.close();
+				
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
-			} finally {				
-				// Create maps directory
-				Process p = null;
-				try {
-					p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/maps/").start();
-					p.waitFor();
-					
-					// Create UM file
-					FileWriter fstream;
-				    BufferedWriter out;
-
-				    // Create filewriter and bufferedreader
-				    fstream = new FileWriter("/tmp/abellami/maps/UM" + splitNumber + ".txt");
-				    out = new BufferedWriter(fstream);
-
-				    // create Iterator for the map
-				    Iterator<Entry<String, Integer>> it = map.entrySet().iterator();
-
-				    // Use the iterator to loop through the map, stopping when we reach the
-				    while (it.hasNext()) {
-
-				        // Store the key/value as a pair
-				        Map.Entry<String, Integer> pairs = it.next();
-				        
-				        // Write the key in the standard output stream
-				        System.out.println(pairs.getKey());
-
-				        // Write the key and the value in a new line of the buffered writer,
-				        // separated by a space
-				        out.write(pairs.getKey() + " " + pairs.getValue() + "\n");
-				    }
-				    // lastly, close the file and end
-				    out.close();
-				    fstream.close();
-					
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
-			
 		}
 
 		if (mode==1) {
@@ -112,7 +89,6 @@ public class Main {
 
 					fr = new FileReader(args[k+3]);
 					BufferedReader br = new BufferedReader(fr);
-					@SuppressWarnings("resource")
 					Scanner sc = new Scanner(br);
 					
 					String word = null;
@@ -141,15 +117,13 @@ public class Main {
 			String RM = args[3];
 
 			FileReader fr = null;
+			FileWriter fstream = null;
+			BufferedWriter out = null;
 			// Create reduces directory
 			Process p = null;
 			try {
 				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/reduces/").start();
 				p.waitFor();
-
-				// Create RM file
-				FileWriter fstream;
-				BufferedWriter out;
 
 				// Create filewriter and bufferedreader
 				fstream = new FileWriter(RM);

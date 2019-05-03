@@ -1,8 +1,18 @@
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.LineNumberReader;
+
+import java.lang.ProcessBuilder.Redirect;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 import java.util.TreeSet;
 import java.util.Set;
 import java.util.HashMap;
@@ -18,7 +28,7 @@ public class Reducer {
     private HashMap<String, List<String>> keys_UMx_dict = new HashMap<String, List<String>>();
     private HashMap<String, Set<String>> shufflers_keys_dict = new HashMap<String, Set<String>>();
     private ConcurrentSkipListSet<Integer> ids = new ConcurrentSkipListSet();
-    private HashMap<String, Integer> keys_id_dict = new HashMap<String, Integer>();
+    private HashMap<String, String> RMx_machines_dict = new HashMap<String, String>();
     
     public HashMap<String, String> getUMx_machines_dict() {
 		return UMx_machines_dict;
@@ -43,7 +53,7 @@ public class Reducer {
         ids = new ConcurrentSkipListSet(range);
     }
     
-    public void prepare() {
+    public void reduce() {
         // Iterator on machines
         Iterator machinesIterator = machinesDeployed.iterator();
         Set<String> keys = keys_UMx_dict.keySet();
@@ -87,40 +97,98 @@ public class Reducer {
                 int id = ids.pollFirst();
                 String SM = "SM" + Integer.toString(id);
                 String RM = "RM" + Integer.toString(id);
-                keys_id_dict.put(key, id);
+                RMx_machines_dict.put(RM, shuffle_machine);
 
                 /*
                 * Shuffle maps
                 */
                 Process q = null;
-                    try {
-                        List<String> command = new ArrayList<String>();
-                        command.add("ssh");
-                        command.add("abellami@" + shuffle_machine);
-                        command.add("java");
-                        command.add("-jar");
-                        command.add("/tmp/abellami/slave.jar");
-                        command.add("1");
-                        command.add(key);
-                        command.add("/tmp/abellami/maps/" + SM + ".txt");
-                        for (String UM: keys_UMx_dict.get(key)) {
-                            command.add("/tmp/abellami/maps/" + UM + ".txt");
-                        }
-                        System.out.println(command);
-
-                        q = new ProcessBuilder(command).start();
-                        q.waitFor();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                try {
+                    List<String> command = new ArrayList<String>();
+                    command.add("ssh");
+                    command.add("abellami@" + shuffle_machine);
+                    command.add("java");
+                    command.add("-jar");
+                    command.add("/tmp/abellami/slave.jar");
+                    command.add("1");
+                    command.add(key);
+                    command.add("/tmp/abellami/maps/" + SM + ".txt");
+                    for (String UM: keys_UMx_dict.get(key)) {
+                        command.add("/tmp/abellami/maps/" + UM + ".txt");
                     }
+
+                    q = new ProcessBuilder(command).start();
+                    q.waitFor();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 /*
                 * Reduce sorted maps
                 */
+                try {
+                    List<String> command = new ArrayList<String>();
+                    command.add("ssh");
+                    command.add("abellami@" + shuffle_machine);
+                    command.add("java");
+                    command.add("-jar");
+                    command.add("/tmp/abellami/slave.jar");
+                    command.add("2");
+                    command.add(key);
+                    command.add("/tmp/abellami/maps/" + SM + ".txt");
+                    command.add("/tmp/abellami/reduces/" + RM + ".txt");
+
+                    q = new ProcessBuilder(command).start();
+                    q.waitFor();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
             });
         });
+    }
+
+    public void displayResult() {
+        Process p = null;
+        try {
+            p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/results/").start();
+            p.waitFor();
+        } catch (Exception e) {}
+
+        FileWriter fstream = null;
+        BufferedWriter out = null;
+		try {
+            fstream = new FileWriter("result.txt");
+            out = new BufferedWriter(fstream);
+            for (String RM: RMx_machines_dict.keySet()) {
+                FileReader fr = null;
+                try {
+                    p = new ProcessBuilder("scp", RMx_machines_dict.get(RM) +
+                                           ":/tmp/abellami/reduces/" + RM + ".txt",
+                                           "cat", "/tmp/abellami/results").start();
+                    p.waitFor();
+                    fr = new FileReader("/tmp/abellami/results/" + RM + ".txt");
+                    BufferedReader br = new BufferedReader(fr) ;
+                    Scanner        sc = new Scanner(br) ;
+                    
+                    while (sc.hasNextLine()) {
+                        out.write(sc.nextLine() + "\n");
+                    }
+                    
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                out.close();
+            } catch (IOException e) {e.printStackTrace();}
+        }
     }
 }
