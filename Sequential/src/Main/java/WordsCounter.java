@@ -14,15 +14,25 @@ public class WordsCounter {
 
 	public static void main(String[] args) {
 
+		final boolean localExecution = System.getenv().get("HOSTNAME").equals("localhost.localdomain");
+
 		HashMap<String, Integer> map = new HashMap<>();
 
 		FileReader fr = null;
 		try {
-			fr = new FileReader("../../resources/internet.wet");
+			// Local execution
+			if (localExecution) {
+				fr = new FileReader("../../../resources/input.txt");
+			}
+			// Distant execution
+			else {
+				fr = new FileReader("/cal/homes/abellami/tmp/abellami/resources/input.txt");
+			}
+			
 			BufferedReader br = new BufferedReader(fr) ;
 			Scanner        sc = new Scanner(br) ;
 
-			System.out.println("Counting word...");
+			System.out.println("Counting words...");
 			long startTime = System.currentTimeMillis();
 			String word = null;
 			while(sc.hasNext()) {
