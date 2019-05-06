@@ -81,6 +81,9 @@ public class Reducer {
 
                     Process p = null;	
                     try {
+                        p = new ProcessBuilder("ssh", "abellami@" + shuffle_machine, "mkdir", "-p",
+							"/tmp/abellami/maps/").start();
+					    p.waitFor();
                         p = new ProcessBuilder("scp", "abellami@" + machine_sender
                                                + ":/tmp/abellami/maps/" + UM + ".txt",
                                                "abellami@" + shuffle_machine
@@ -111,7 +114,7 @@ public class Reducer {
                     command.add("-jar");
                     command.add("/tmp/abellami/slave.jar");
                     command.add("1");
-                    command.add(key);
+                    command.add("\"" + key.replace("\"", "\\\"").replace("\'", "\\\'") + "\"");
                     command.add("/tmp/abellami/maps/" + SM + ".txt");
                     for (String UM: keys_UMx_dict.get(key)) {
                         command.add("/tmp/abellami/maps/" + UM + ".txt");
@@ -136,7 +139,7 @@ public class Reducer {
                     command.add("-jar");
                     command.add("/tmp/abellami/slave.jar");
                     command.add("2");
-                    command.add(key);
+                    command.add("\"" + key.replace("\"", "\\\"").replace("\'", "\\\'") + "\"");
                     command.add("/tmp/abellami/maps/" + SM + ".txt");
                     command.add("/tmp/abellami/reduces/" + RM + ".txt");
 
@@ -150,6 +153,8 @@ public class Reducer {
 
             });
         });
+
+        System.out.println("RMx-machines: " + RMx_machines_dict);
     }
 
     public void displayResult() {
@@ -169,14 +174,15 @@ public class Reducer {
                 try {
                     p = new ProcessBuilder("scp", RMx_machines_dict.get(RM) +
                                            ":/tmp/abellami/reduces/" + RM + ".txt",
-                                           "cat", "/tmp/abellami/results").start();
+                                           "/tmp/abellami/results").start();
                     p.waitFor();
                     fr = new FileReader("/tmp/abellami/results/" + RM + ".txt");
                     BufferedReader br = new BufferedReader(fr) ;
                     Scanner        sc = new Scanner(br) ;
                     
                     while (sc.hasNextLine()) {
-                        out.write(sc.nextLine() + "\n");
+                        //out.write(sc.nextLine() + "\n");
+                        System.out.print(sc.nextLine() + "\n");
                     }
                     
                 } catch (InterruptedException e) {

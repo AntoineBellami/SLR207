@@ -22,7 +22,7 @@ public class WordsCounter {
 		try {
 			// Local execution
 			if (localExecution) {
-				fr = new FileReader("../../../resources/input.txt");
+				fr = new FileReader("../../../resources/forestier_mayotte.txt");
 			}
 			// Distant execution
 			else {

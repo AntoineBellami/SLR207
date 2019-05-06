@@ -4,6 +4,7 @@ public class Main {
 		
 		MachinesTester tester = new MachinesTester();
 		tester.checkMachines();
+		tester.deploySlave();
 		
 	}
 }

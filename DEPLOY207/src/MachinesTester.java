@@ -94,7 +94,7 @@ public class MachinesTester {
 		    
 		    /*
 		     * Wait for at most 'timeout' seconds the output of the command ;
-		     * if the machine is not reachable during those 10 seconds,
+		     * if the machine is not reachable within this time,
 		     * the connection is considered to have failed
 		     */
 		    try {
@@ -109,6 +109,12 @@ public class MachinesTester {
 				this.machinesDeployed.add(machine);
 				
 				try {
+					/*
+					* Clean the /tmp/abellami/ directory for a fresh start
+					*/
+					p = new ProcessBuilder("ssh", "abellami@" + machine, "rm", "-rf",
+							"/tmp/abellami/").start();
+					p.waitFor();
 					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
 							"/tmp/abellami/").start();
 					p.waitFor();
@@ -123,6 +129,33 @@ public class MachinesTester {
 				System.err.println(result);
 			}
 		    t.interrupt();
+		});
+	}
+
+	public void deploySlave() {
+		/*
+		* Simultaneously deploy on every reached machine the slave.jar program
+		*/
+		machinesDeployed.parallelStream().forEach(machine -> {
+	
+			Process p = null;
+			try {
+				/*
+				* Create /tmp/abellami/ directory and deploy slave.jar in it
+				*/
+				p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
+						"/tmp/abellami/splits/").start();
+				p.waitFor();
+				
+				p = new ProcessBuilder("scp", "slave.jar", "abellami@" + machine
+						+ ":/tmp/abellami").start();
+				
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		
 		});
 	}
 	

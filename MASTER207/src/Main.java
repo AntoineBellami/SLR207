@@ -1,16 +1,82 @@
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
 import java.util.List;
 
 public class Main {
 	public static void main(String[] args) {
 		
+		boolean localExecution = false;
+		try {
+			localExecution = System.getenv().get("HOSTNAME").equals("localhost.localdomain");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 		/*
-		 * This boolean determines whether the slave.jar file is deployed after
-		 * the search for reachable machines
-		 */
-		final boolean deploySlave = true;
+		* Clean the splits/ directory
+		*/
+		Process pr = null;
+        try {
+			pr = new ProcessBuilder("rm", "-rf", "splits/").start();
+            pr.waitFor();
+            pr = new ProcessBuilder("mkdir", "-p", "splits/").start();
+            pr.waitFor();
+        } catch (Exception e) {}
+
+		/*
+		* Cut an input file into smaller splits.
+		*/
+		final int max_lines = 10;
+		FileReader fr = null;
+		BufferedWriter out = null;
+		try {
+			// Local execution
+			if (localExecution) {
+				fr = new FileReader("resources/input.txt");
+			}
+			// Distant execution
+			else {
+				fr = new FileReader("/cal/homes/abellami/tmp/abellami/resources/forestier_mayotte.txt");
+			}
+			BufferedReader br = new BufferedReader(fr) ;
+			Scanner        sc = new Scanner(br) ;
+			/*
+			* Fix a max file size (in terms of lines number) for each split.
+			* Increment the split index
+			*/
+			int splitIndex = 0;
+			int lines_written = 0;
+			while (sc.hasNextLine()) {
+				FileWriter fstream = null;
+				try {
+					fstream = new FileWriter("splits/S" + Integer.toString(splitIndex) + ".txt");
+					splitIndex ++;
+					out = new BufferedWriter(fstream);
+					lines_written = 0;
+					while (sc.hasNextLine() && lines_written < max_lines) {
+						out.write(sc.nextLine() + "\n");
+						lines_written ++;
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally { out.close(); }
+			}
+
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try { fr.close(); } catch (Exception e) {}
+		}
 		
 		/*
 		 * This boolean determines whether the split files are deployed after
@@ -63,48 +129,30 @@ public class Main {
 			e.printStackTrace();
 		}
 		
-		if (deploySlave) {
-			
-			/*
-			 * Simultaneously deploy for every machine the SLAVE
-			 */			
-			machinesDeployed.parallelStream().forEach(machine -> {
-		
-				Process p = null;
-				try {
-					/*
-					 * Create /tmp/abellami/ directory and deploy slave in it
-					 */
-					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
-							"/tmp/abellami/splits/").start();
-					p.waitFor();
-					
-					p = new ProcessBuilder("scp", "slave.jar", "abellami@" + machine
-							+ ":/tmp/abellami").start();
-					
-				} catch (IOException e) {
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			
-			});
-			
-		}
-		
 		if (deploySplits) {
+			System.out.println("Begin of the map phase\n");
+			long startMapTime = System.currentTimeMillis();
+
 			SplitsDeployer splitsDeployer = new SplitsDeployer(machinesDeployed, "splits/");
 			splitsDeployer.deploy();
+
+			long endMapTime   = System.currentTimeMillis();
+			System.out.println("Mapping time: " + (endMapTime - startMapTime) + " ms\n");
 			
 			UMx_machines_dict = new HashMap<String, String>(splitsDeployer.getUMx_machines_dict());
-			System.out.println("UMx-machines: " + UMx_machines_dict);
 			keys_UMx_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_UMx_dict());
+			System.out.println("UMx-machines: " + UMx_machines_dict);
 			System.out.println("Keys-UMx: " + keys_UMx_dict);
-			
-			System.out.println("End of the map phase\n");
+
+			System.out.println("Begin of the shuffle phase\n");
+			long startShuffleTime = System.currentTimeMillis();
 
 			Reducer reducer = new Reducer(machinesDeployed, UMx_machines_dict, keys_UMx_dict);
 			reducer.reduce();
+
+			long endReduceTime   = System.currentTimeMillis();
+			System.out.println("Shuffle-reduce time: " + (endReduceTime - startShuffleTime) + " ms\n");
+
 			reducer.displayResult();
 		}
 	}
