@@ -12,11 +12,29 @@ public class MachinesTester {
 	
 	final int timeout = 2; // timeout in seconds
 	
+	private String username;
 	private ArrayList<String> machines = new ArrayList<String>();
 	private ArrayList<String> machinesDeployed = new ArrayList<String>();
 
 	public MachinesTester() {
 		super();
+		/*
+		* Read the configuration data (cf. README)
+		*/
+		FileReader fr = null;
+		try {
+			fr = new FileReader("hadoop.conf");
+			
+			BufferedReader br = new BufferedReader(fr);
+			Scanner        sc = new Scanner(br);
+
+			sc.skip("Username:");
+			this.username = sc.next();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			try {fr.close();} catch(Exception e) {e.printStackTrace();}
+		}
 	}
 
 	public ArrayList<String> getMachinesDeployed() {
@@ -60,7 +78,7 @@ public class MachinesTester {
     		 */
     		Process p = null;
 			try {
-				p = new ProcessBuilder("ssh", "abellami@" + machine, "hostname").start();
+				p = new ProcessBuilder("ssh", username + "@" + machine, "hostname").start();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
@@ -110,13 +128,13 @@ public class MachinesTester {
 				
 				try {
 					/*
-					* Clean the /tmp/abellami/ directory for a fresh start
+					* Clean the /tmp/username/ directory for a fresh start
 					*/
-					p = new ProcessBuilder("ssh", "abellami@" + machine, "rm", "-rf",
-							"/tmp/abellami/").start();
+					p = new ProcessBuilder("ssh", username + "@" + machine, "rm", "-rf",
+							"/tmp/" + username + "/").start();
 					p.waitFor();
-					p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
-							"/tmp/abellami/").start();
+					p = new ProcessBuilder("ssh", username + "@" + machine, "mkdir", "-p",
+							"/tmp/" + username + "/").start();
 					p.waitFor();
 				} catch (IOException e1) {
 					e1.printStackTrace();
@@ -141,14 +159,14 @@ public class MachinesTester {
 			Process p = null;
 			try {
 				/*
-				* Create /tmp/abellami/ directory and deploy slave.jar in it
+				* Create /tmp/username/ directory and deploy slave.jar in it
 				*/
-				p = new ProcessBuilder("ssh", "abellami@" + machine, "mkdir", "-p",
-						"/tmp/abellami/splits/").start();
+				p = new ProcessBuilder("ssh", username + "@" + machine, "mkdir", "-p",
+						"/tmp/" + username + "/splits/").start();
 				p.waitFor();
 				
-				p = new ProcessBuilder("scp", "slave.jar", "abellami@" + machine
-						+ ":/tmp/abellami").start();
+				p = new ProcessBuilder("scp", "slave.jar", username + "@" + machine
+						+ ":/tmp/" + username).start();
 				
 			} catch (IOException e) {
 				e.printStackTrace();

@@ -13,16 +13,34 @@ import java.util.List;
 
 public class Main {
 	public static void main(String[] args) {
-		
-		boolean localExecution = false;
+
+		/*
+		 * Read the configuration data (cf. README)
+		 */
+		FileReader fr = null;
+		String username = null;
+		String input = null;
+		int max_lines = 0;
 		try {
-			localExecution = System.getenv().get("HOSTNAME").equals("localhost.localdomain");
-		} catch (Exception e) {
+			fr = new FileReader("hadoop.conf");
+			
+			BufferedReader br = new BufferedReader(fr);
+			Scanner        sc = new Scanner(br);
+
+			sc.next();
+			username = sc.next();
+			sc.next();
+			input = sc.next();
+			sc.next();
+			max_lines = sc.nextInt();
+		} catch (FileNotFoundException e) {
 			e.printStackTrace();
+		} finally {
+			try {fr.close();} catch(Exception e) {e.printStackTrace();}
 		}
 
 		/*
-		* Clean the splits/ directory
+		* Clean the ./splits/ directory of the machine executing MASTER
 		*/
 		Process pr = null;
         try {
@@ -33,26 +51,17 @@ public class Main {
         } catch (Exception e) {}
 
 		/*
-		* Cut an input file into smaller splits.
-		*/
-		final int max_lines = 10;
-		FileReader fr = null;
+		 * Cut an input file into smaller splits.
+		 * The max_lines parameter determines the maximum size of a single plit file:
+		 * new split files are created and filled with a maximum of max_lines lines
+		 * until the whole input file is scanned.
+		 */
 		BufferedWriter out = null;
 		try {
-			// Local execution
-			if (localExecution) {
-				fr = new FileReader("resources/input.txt");
-			}
-			// Distant execution
-			else {
-				fr = new FileReader("/cal/homes/abellami/tmp/abellami/resources/forestier_mayotte.txt");
-			}
+			fr = new FileReader("/cal/homes/"+username+"/tmp/"+username+"/resources/"+input);
 			BufferedReader br = new BufferedReader(fr) ;
 			Scanner        sc = new Scanner(br) ;
-			/*
-			* Fix a max file size (in terms of lines number) for each split.
-			* Increment the split index
-			*/
+
 			int splitIndex = 0;
 			int lines_written = 0;
 			while (sc.hasNextLine()) {
@@ -63,7 +72,7 @@ public class Main {
 					out = new BufferedWriter(fstream);
 					lines_written = 0;
 					while (sc.hasNextLine() && lines_written < max_lines) {
-						out.write(sc.nextLine() + "\n");
+						out.write(sc.nextLine().replace(",", "").replace(".", "").toLowerCase() + "\n");
 						lines_written ++;
 					}
 				} catch (IOException e) {
@@ -79,12 +88,6 @@ public class Main {
 		}
 		
 		/*
-		 * This boolean determines whether the split files are deployed after
-		 * the search for reachable machines 
-		 */
-		final boolean deploySplits = true;
-		
-		/*
 		 * Read deployed machines names by calling deploy.jar and store them
 		 * in an ArrayList
 		 */
@@ -92,14 +95,21 @@ public class Main {
 		
 		/*
 		 * Dictionary mapping the names of the UMx files with the names of
-		 * the machines containing them
+		 * the machines on which they are stored
 		 */
 		HashMap<String, String> UMx_machines_dict = new HashMap<String, String>();
+		/*
+		 * Dictionary mapping the keys (words contained in input file) with the unsorted
+		 * maps containing them
+		 */
 		HashMap<String, List<String>> keys_UMx_dict = new HashMap<String, List<String>>();
 		
 		System.out.println("Seek for deployed machines:" + "\n");
 		
 		try {
+			/*
+			 * deploy.jar WHAT DOES IT DO
+			 */
 			Process p = new ProcessBuilder("java", "-jar", "deploy.jar").start();
 			
 			/*
@@ -121,7 +131,7 @@ public class Main {
 			 * Wait for the end of the execution of deploy.jar
 			 */
 			p.waitFor();
-			System.out.println("\n" + "Deployed");
+			System.out.println("\n" + "Deployment completed");
 			
 		} catch (IOException e1) {
 			e1.printStackTrace();
@@ -129,31 +139,39 @@ public class Main {
 			e.printStackTrace();
 		}
 		
-		if (deploySplits) {
-			System.out.println("Begin of the map phase\n");
-			long startMapTime = System.currentTimeMillis();
+		System.out.println("\nBegin of the map phase");
+		long startMapTime = System.currentTimeMillis();
 
-			SplitsDeployer splitsDeployer = new SplitsDeployer(machinesDeployed, "splits/");
-			splitsDeployer.deploy();
+		/*
+		 * Distribute the splits and launch the mapping operation
+		 */
+		SplitsDeployer splitsDeployer = new SplitsDeployer(username, machinesDeployed, "splits/");
+		splitsDeployer.deploy();
 
-			long endMapTime   = System.currentTimeMillis();
-			System.out.println("Mapping time: " + (endMapTime - startMapTime) + " ms\n");
-			
-			UMx_machines_dict = new HashMap<String, String>(splitsDeployer.getUMx_machines_dict());
-			keys_UMx_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_UMx_dict());
-			System.out.println("UMx-machines: " + UMx_machines_dict);
-			System.out.println("Keys-UMx: " + keys_UMx_dict);
+		long endMapTime   = System.currentTimeMillis();
+		System.out.println("\nMapping time: " + (endMapTime - startMapTime) + " ms\n");
+		
+		UMx_machines_dict = new HashMap<String, String>(splitsDeployer.getUMx_machines_dict());
+		keys_UMx_dict = new HashMap<String, List<String>>(splitsDeployer.getKeys_UMx_dict());
+		System.out.println("\nUMx-machines: " + UMx_machines_dict);
+		System.out.println("\nKeys-UMx: " + keys_UMx_dict);
 
-			System.out.println("Begin of the shuffle phase\n");
-			long startShuffleTime = System.currentTimeMillis();
+		System.out.println("\nBegin of the shuffle phase\n");
+		long startShuffleTime = System.currentTimeMillis();
 
-			Reducer reducer = new Reducer(machinesDeployed, UMx_machines_dict, keys_UMx_dict);
-			reducer.reduce();
+		/*
+		 * Manage the shuffle and reduce operations
+		 */
+		Reducer reducer = new Reducer(username, machinesDeployed, UMx_machines_dict, keys_UMx_dict);
+		reducer.reduce();
 
-			long endReduceTime   = System.currentTimeMillis();
-			System.out.println("Shuffle-reduce time: " + (endReduceTime - startShuffleTime) + " ms\n");
+		long endReduceTime   = System.currentTimeMillis();
+		System.out.println("\nShuffle-reduce time: " + (endReduceTime - startShuffleTime) + " ms\n");
 
-			reducer.displayResult();
-		}
+		/*
+		 * Write the number of occurences of every word in the input file (not ordered)
+		 * either in a file (./result.txt) if writeFile=true or in the standard output stream
+		 */
+		reducer.displayResult(true);
 	}
 }

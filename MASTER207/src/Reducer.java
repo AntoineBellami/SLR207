@@ -23,12 +23,37 @@ import java.util.stream.Collectors;
 import java.util.List;
 
 public class Reducer {
+    private String username;
+    /*
+     * List of machines on which deploy.jar is deployed
+     */
     private ArrayList<String> machinesDeployed = new ArrayList<String>();
-	private HashMap<String, String> UMx_machines_dict = new HashMap<String, String>();
+    /*
+     * Dictionary mapping the names of the UMx files with the names of
+     * the machines on which they are stored
+     */
+    private HashMap<String, String> UMx_machines_dict = new HashMap<String, String>();
+    /*
+     * Dictionary mapping the keys (words contained in input file) with the unsorted
+     * maps containing them
+     */
     private HashMap<String, List<String>> keys_UMx_dict = new HashMap<String, List<String>>();
+    /*
+     * Dictionary mapping the machines to the keys they shuffle
+     */
     private HashMap<String, Set<String>> shufflers_keys_dict = new HashMap<String, Set<String>>();
-    private ConcurrentSkipListSet<Integer> ids = new ConcurrentSkipListSet();
+    /*
+     * Dictionary mapping the names of the RMx files with the names of
+     * the machines on which they are stored
+     */
     private HashMap<String, String> RMx_machines_dict = new HashMap<String, String>();
+    /*
+     * This concurrent skip list set will be initialized with a range from 0 to the number
+     * of keys minus one (which equals to the number of RMx files) in order to poll the
+     * [number of keys] distinct 'x' numbers in 'RMx' file names.
+     * Concurrency is necessary because files are named in parallel streams
+     */
+    private ConcurrentSkipListSet<Integer> ids = new ConcurrentSkipListSet();
     
     public HashMap<String, String> getUMx_machines_dict() {
 		return UMx_machines_dict;
@@ -37,15 +62,16 @@ public class Reducer {
 		return keys_UMx_dict;
 	}
 
-    public Reducer(ArrayList<String> machinesDeployed, HashMap<String,
+    public Reducer(String username, ArrayList<String> machinesDeployed, HashMap<String,
                    String> UMx_machines_dict, HashMap<String, List<String>> keys_UMx_dict) {
+        this.username = username;
 		this.machinesDeployed = machinesDeployed;
         this.UMx_machines_dict = UMx_machines_dict;
         this.keys_UMx_dict = keys_UMx_dict;
         for (String machine: machinesDeployed) {
             shufflers_keys_dict.put(machine, new TreeSet<String>());
         }
-        /* 
+        /*
         * Associate each key with a number from 0 to numberOfKeys-1
         */
         int nb_keys = keys_UMx_dict.keySet().size();
@@ -54,11 +80,17 @@ public class Reducer {
     }
     
     public void reduce() {
-        // Iterator on machines
+        /*
+		 * Iterator on machines
+		 */
         Iterator machinesIterator = machinesDeployed.iterator();
         Set<String> keys = keys_UMx_dict.keySet();
         
-        // Assign each key to a machine
+        /*
+		 * Assign each split to a machine using an iterator on the list of deployed machines
+		 * If the number of splits is higher than the number of working machines, attribute
+		 * a split to each machines until all machines posess the same number of splits
+		 */
         for (String key: keys) {
             if (machinesIterator.hasNext()) {
                 shufflers_keys_dict.get(machinesIterator.next()).add(key);
@@ -73,30 +105,40 @@ public class Reducer {
 
         shufflers_keys_dict.keySet().parallelStream().forEach(shuffle_machine -> {
 
+            Process proc = null;
+            try {
+                /*
+                * Create the maps/ and reduces/ directories on the shuffle machine
+                */
+                proc = new ProcessBuilder("ssh", username + "@" + shuffle_machine, "mkdir", "-p",
+                    "/tmp/" + username + "/maps/").start();
+                proc.waitFor();
+                proc = new ProcessBuilder("ssh", username + "@" + shuffle_machine, "mkdir", "-p",
+                    "/tmp/" + username + "/reduces/").start();
+                proc.waitFor();
+            } catch (Exception e) { e.printStackTrace(); }
+
             shufflers_keys_dict.get(shuffle_machine).parallelStream().forEach(key -> {
 
                 keys_UMx_dict.get(key).parallelStream().forEach(UM -> {
 
                     String machine_sender = UMx_machines_dict.get(UM);
 
-                    Process p = null;	
+                    Process p = null;
                     try {
-                        p = new ProcessBuilder("ssh", "abellami@" + shuffle_machine, "mkdir", "-p",
-							"/tmp/abellami/maps/").start();
-					    p.waitFor();
-                        p = new ProcessBuilder("scp", "abellami@" + machine_sender
-                                               + ":/tmp/abellami/maps/" + UM + ".txt",
-                                               "abellami@" + shuffle_machine
-                                               + ":/tmp/abellami/maps").start();
+                        p = new ProcessBuilder("scp", username + "@" + machine_sender
+                                               + ":/tmp/" + username + "/maps/" + UM + ".txt",
+                                               username + "@" + shuffle_machine
+                                               + ":/tmp/" + username + "/maps").start();
                         p.waitFor();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 });
                 
-                // for each key, name it from 0 to keyNb-1
+                /*
+                 * Poll a number from 0 to [number of keys - 1]
+                 */
                 int id = ids.pollFirst();
                 String SM = "SM" + Integer.toString(id);
                 String RM = "RM" + Integer.toString(id);
@@ -109,15 +151,16 @@ public class Reducer {
                 try {
                     List<String> command = new ArrayList<String>();
                     command.add("ssh");
-                    command.add("abellami@" + shuffle_machine);
+                    command.add(username + "@" + shuffle_machine);
                     command.add("java");
                     command.add("-jar");
-                    command.add("/tmp/abellami/slave.jar");
+                    command.add("/tmp/" + username + "/slave.jar");
+                    command.add(username);
                     command.add("1");
                     command.add("\"" + key.replace("\"", "\\\"").replace("\'", "\\\'") + "\"");
-                    command.add("/tmp/abellami/maps/" + SM + ".txt");
+                    command.add("/tmp/" + username + "/maps/" + SM + ".txt");
                     for (String UM: keys_UMx_dict.get(key)) {
-                        command.add("/tmp/abellami/maps/" + UM + ".txt");
+                        command.add("/tmp/" + username + "/maps/" + UM + ".txt");
                     }
 
                     q = new ProcessBuilder(command).start();
@@ -134,14 +177,15 @@ public class Reducer {
                 try {
                     List<String> command = new ArrayList<String>();
                     command.add("ssh");
-                    command.add("abellami@" + shuffle_machine);
+                    command.add(username + "@" + shuffle_machine);
                     command.add("java");
                     command.add("-jar");
-                    command.add("/tmp/abellami/slave.jar");
+                    command.add("/tmp/" + username + "/slave.jar");
+                    command.add(username);
                     command.add("2");
                     command.add("\"" + key.replace("\"", "\\\"").replace("\'", "\\\'") + "\"");
-                    command.add("/tmp/abellami/maps/" + SM + ".txt");
-                    command.add("/tmp/abellami/reduces/" + RM + ".txt");
+                    command.add("/tmp/" + username + "/maps/" + SM + ".txt");
+                    command.add("/tmp/" + username + "/reduces/" + RM + ".txt");
 
                     q = new ProcessBuilder(command).start();
                     q.waitFor();
@@ -157,10 +201,10 @@ public class Reducer {
         System.out.println("RMx-machines: " + RMx_machines_dict);
     }
 
-    public void displayResult() {
+    public void displayResult(boolean writeFile) {
         Process p = null;
         try {
-            p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/results/").start();
+            p = new ProcessBuilder("mkdir", "-p", "/tmp/" + username + "/results/").start();
             p.waitFor();
         } catch (Exception e) {}
 
@@ -173,16 +217,19 @@ public class Reducer {
                 FileReader fr = null;
                 try {
                     p = new ProcessBuilder("scp", RMx_machines_dict.get(RM) +
-                                           ":/tmp/abellami/reduces/" + RM + ".txt",
-                                           "/tmp/abellami/results").start();
+                                           ":/tmp/" + username + "/reduces/" + RM + ".txt",
+                                           "/tmp/" + username + "/results").start();
                     p.waitFor();
-                    fr = new FileReader("/tmp/abellami/results/" + RM + ".txt");
+                    fr = new FileReader("/tmp/" + username + "/results/" + RM + ".txt");
                     BufferedReader br = new BufferedReader(fr) ;
                     Scanner        sc = new Scanner(br) ;
                     
                     while (sc.hasNextLine()) {
-                        //out.write(sc.nextLine() + "\n");
-                        System.out.print(sc.nextLine() + "\n");
+                        if (writeFile) {
+                            out.write(sc.nextLine() + "\n");        // Write the result in result.txt
+                        } else {
+                            System.out.print(sc.nextLine() + "\n"); // Output the result in the terminal
+                        }
                     }
                     
                 } catch (InterruptedException e) {

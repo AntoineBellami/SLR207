@@ -9,8 +9,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ErrorStreamThread extends Thread {
 	
 	/*
-	 * This boolean determines which treatment to apply to the content read
-	 * in the stream
+	 * This boolean determines which treatment to apply to the content read in the stream:
+	 * - if timeoutThing = true, the error stream should be managed with a LinkedBlockingQueue
+	 * (for sensitive processes)
+	 * - either way, the error input stream is just output in the error output stream
 	 */
 	private boolean timeoutThing = false;
 	

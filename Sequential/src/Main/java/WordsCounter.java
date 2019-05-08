@@ -14,23 +14,35 @@ public class WordsCounter {
 
 	public static void main(String[] args) {
 
-		final boolean localExecution = System.getenv().get("HOSTNAME").equals("localhost.localdomain");
+		/*
+		 * Read the configuration data (cf. README)
+		 */
+		FileReader fr = null;
+		String username = null;
+		String input = null;
+		try {
+			fr = new FileReader("../../sequential.conf");
+			
+			BufferedReader br = new BufferedReader(fr);
+			Scanner        sc = new Scanner(br);
+
+			sc.next();
+			username = sc.next();
+			sc.next();
+			input = sc.next();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			try {fr.close();} catch(Exception e) {e.printStackTrace();}
+		}
 
 		HashMap<String, Integer> map = new HashMap<>();
 
-		FileReader fr = null;
 		try {
-			// Local execution
-			if (localExecution) {
-				fr = new FileReader("../../../resources/forestier_mayotte.txt");
-			}
-			// Distant execution
-			else {
-				fr = new FileReader("/cal/homes/abellami/tmp/abellami/resources/input.txt");
-			}
+			fr = new FileReader("/cal/homes/" + username + "/tmp/" + username + "/resources/" + input);
 			
-			BufferedReader br = new BufferedReader(fr) ;
-			Scanner        sc = new Scanner(br) ;
+			BufferedReader br = new BufferedReader(fr);
+			Scanner        sc = new Scanner(br);
 
 			System.out.println("Counting words...");
 			long startTime = System.currentTimeMillis();

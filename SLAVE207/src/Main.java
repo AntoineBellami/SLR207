@@ -17,14 +17,15 @@ public class Main {
 
 	public static void main(String[] args) {
 		
-		int mode = Integer.parseInt(args[0]);
+		String username = args[0];
+		int mode = Integer.parseInt(args[1]);
 		
 		/*
-		 * Mode 0 corresponds to the map step
+		 * Mode 0 corresponds to the mapping operation
 		 */
 		if (mode == 0) {
-			String splitNumber = args[1];
-			String pathToSplit = "/tmp/abellami/splits/S" + splitNumber + ".txt";
+			String splitNumber = args[2];
+			String pathToSplit = "/tmp/" + username + "/splits/S" + splitNumber + ".txt";
 
 			HashSet<String> set = new HashSet<String>();
 			
@@ -33,7 +34,7 @@ public class Main {
 			FileWriter fstream = null;
 			BufferedWriter out = null;
 			try {
-				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/maps/").start();
+				p = new ProcessBuilder("mkdir", "-p", "/tmp/" + username + "/maps/").start();
 				p.waitFor();
 
 				fr = new FileReader(pathToSplit);
@@ -41,23 +42,25 @@ public class Main {
 				Scanner        sc = new Scanner(br) ;
 				
 				String word = null;
-				// Create filewriter and bufferedreader
-				fstream = new FileWriter("/tmp/abellami/maps/UM" + splitNumber + ".txt");
+				fstream = new FileWriter("/tmp/" + username + "/maps/UM" + splitNumber + ".txt");
 				out = new BufferedWriter(fstream);
 
 				while (sc.hasNext()) {
-					word = sc.next();
+					word = sc.next().replace("\\\'", "\'").replace("\\\"", "\"");
 					if (!set.contains(word)) {
-						// Write the key in the standard output stream
+						/*
+						 * Write the key in the standard output stream
+						 */
 						System.out.println(word);
 						set.add(word);
 					}
 
-					// Write the key and the value in a new line of the buffered writer,
-					// separated by a space
+					/*
+					* Write the key and the value in a new line of the buffered writer,
+					* separated by a space
+					*/
 					out.write(word + " 1\n");
 				}
-				// lastly, close the file and end
 				out.close();
 				fstream.close();
 				
@@ -70,10 +73,13 @@ public class Main {
 			}
 		}
 
+		/*
+		 * Mode 1 corresponds to the shuffle operation
+		 */
 		if (mode==1) {
-			String key = args[1];
-			String SM = args[2];
-			int inputUMNb = args.length - 3;
+			String key = args[2];
+			String SM = args[3];
+			int inputUMNb = args.length - 4;
 
 			FileReader fr = null;
 			
@@ -87,7 +93,7 @@ public class Main {
 
 				for (int k=0; k<inputUMNb; k++) {
 
-					fr = new FileReader(args[k+3]);
+					fr = new FileReader(args[k+4]);
 					BufferedReader br = new BufferedReader(fr);
 					Scanner sc = new Scanner(br);
 					
@@ -110,22 +116,19 @@ public class Main {
 			}
 		}
 
+		/*
+		 * Mode 2 corresponds to the reduce operation
+		 */
 		if (mode == 2) {
 
-			String key = args[1];
-			String SM = args[2];
-			String RM = args[3];
+			String key = args[2];
+			String SM = args[3];
+			String RM = args[4];
 
 			FileReader fr = null;
 			FileWriter fstream = null;
 			BufferedWriter out = null;
-			// Create reduces directory
-			Process p = null;
 			try {
-				p = new ProcessBuilder("mkdir", "-p", "/tmp/abellami/reduces/").start();
-				p.waitFor();
-
-				// Create filewriter and bufferedreader
 				fstream = new FileWriter(RM);
 				out = new BufferedWriter(fstream);
 

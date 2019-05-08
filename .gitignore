@@ -1,2 +1,5 @@
 *.class
 resources/
+maps/
+reduces/
+splits/
