@@ -1,6 +1,6 @@
 # SLR207
 
-Implémentation de Hadoop MapReduce “from scratch” en Java.
+Implementing Hadoop MapReduce "from scratch" in Java.
 
 ## Sequential implementation of words counting
 
@@ -14,9 +14,9 @@ This program can be compiled and ran with the command 'ant' executed in the Sequ
 This program can be configured (userneme - like "abellami" - and input file) through the project_root/hadoop.conf file and through project_root/machines.txt (list of the machines that the program will try to reach).
 The input file should be stored in a project_root/resources folder.
 
-The MASTER, DEPLOY and SLAVE program can be compiled and runnable jar files generated with the command 'ant compile && ant create_run_jar' executed in the project_root/ folder.
+The MASTER, DEPLOY and SLAVE programs are compiled and runnable jar files are generated with the command 'ant compile && ant create_run_jar' executed in the project_root/ folder.
 
-When running master.jar, the output of the program (words count) is by default written in a result.txt file.
+When running master.jar, the output of the program (words count) is by default written in a ./result.txt file.
 
 ## Performance
 
